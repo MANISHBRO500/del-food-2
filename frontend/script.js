@@ -1,4 +1,6 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const API_URL = "https://del-food-2.onrender.com/api"; // Replace with your actual backend URL
+
     const foodContainer = document.querySelector('.food-container');
     const cartContainer = document.querySelector('#cart-items');
     const cartTotal = document.querySelector('#cart-total');
@@ -6,19 +8,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let cart = [];
 
-    const foodItems = [
-        { id: 1, name: 'Burger', price: 100 },
-        { id: 2, name: 'Pizza', price: 250 },
-        { id: 3, name: 'Pasta', price: 150 }
-    ];
+    // Fetch food items from backend instead of hardcoded ones
+    async function fetchFoodItems() {
+        try {
+            const response = await fetch(`${API_URL}/food`);
+            const foodItems = await response.json();
 
-    foodItems.forEach(item => {
-        const div = document.createElement('div');
-        div.classList.add('food-item');
-        div.textContent = `${item.name} - ₹${item.price}`;
-        div.addEventListener('click', () => addToCart(item));
-        foodContainer.appendChild(div);
-    });
+            foodItems.forEach(item => {
+                const div = document.createElement('div');
+                div.classList.add('food-item');
+                div.textContent = `${item.name} - ₹${item.price}`;
+                div.addEventListener('click', () => addToCart(item));
+                foodContainer.appendChild(div);
+            });
+        } catch (error) {
+            console.error("Error fetching food items:", error);
+        }
+    }
 
     function addToCart(item) {
         cart.push(item);
@@ -48,13 +54,31 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCart();
     }
 
-    checkoutButton.addEventListener('click', () => {
+    checkoutButton.addEventListener('click', async () => {
         if (cart.length === 0) {
             alert('Cart is empty!');
-        } else {
-            alert(`Order placed successfully! Total: ₹${cart.reduce((sum, item) => sum + item.price, 0)}`);
-            cart = [];
-            updateCart();
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: cart, status: "Pending" })
+            });
+
+            if (response.ok) {
+                alert('Order placed successfully!');
+                cart = [];
+                updateCart();
+            } else {
+                alert('Failed to place order. Please try again.');
+            }
+        } catch (error) {
+            console.error("Error placing order:", error);
         }
     });
+
+    // Fetch food items on page load
+    fetchFoodItems();
 });
